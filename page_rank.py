@@ -106,7 +106,7 @@ def main():
         if bits == '64':
             addr = '0x{0:0>16x}'.format(item[0])
         else:
-            addr = '0x{:08x}'.format(item[0])
+            addr = '0x{0:0>08x}'.format(item[0])
         print(f'address: {addr}, score: {item[1]}')
 
 
