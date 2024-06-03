@@ -1,8 +1,6 @@
 import r2pipe
 import json
 import datetime
-import networkx as nx
-import pandas as pd
 import collections
 import numpy as np
 from scipy.sparse import csc_matrix
@@ -65,26 +63,6 @@ def get_functions(r2p):
     return data
 
 
-def get_adjacency_dict(data):
-    # parse the json and return a list of function refs
-    xrefs = set()
-    # for each of our functions
-    for func in data:
-        # find all of the references within the function
-        for ref in func.get('codexrefs', []):
-            # make sure we have a call reference
-            if ref.get('type', '') == 'CALL':
-                # for each of our functions
-                for func2 in data:
-                    # make sure the call reference is within the bounds of the destination function
-                    if ref['addr'] >= func2['minbound'] and ref['addr'] <= func2['maxbound']:
-                        # add it to our results if we don't already have it
-                        d = {'to': func['offset'], 'from': func2['offset']}
-                        if d not in xrefs:
-                            xrefs.append(d)
-    return list(xrefs)
-
-
 def get_adjacency_data(r2p, data):
     od = collections.OrderedDict()
     print(f'processing {len(data)} items')
@@ -113,7 +91,7 @@ def get_adjacency_matrix(adjdict):
             if idx == i:
                 # ignore recursive functions
                 continue
-            # yes, for now we don't care about duplicates 
+            # yes, for now we don't care about duplicates
             # print(f'adding reference: caller {v} to callee {key}')
             adjmat[i][idx] = 1
     return adjmat
@@ -122,21 +100,20 @@ def get_adjacency_matrix(adjdict):
 def get_rank(G, alpha=.85, maxerr=1e-06, loops=100):
     n = G.shape[0]
     M = csc_matrix(G, dtype=np.float64)
-    rsums = np.array(M.sum(1))[:,0]
+    rsums = np.array(M.sum(1))[:, 0]
     ri, ci = M.nonzero()
     M.data /= rsums[ri]
     sink = rsums == 0
-    
+
     ro = np.zeros(n)
     r = np.ones(n)
-    #ro, r = np.zeros(n), np.ones(n)
     last_sum = 9999999
     for _ in range(loops):
         if last_sum < (n*maxerr):
             break
         ro = r.copy()
         for i in range(0, n):
-            Ii = np.array(M[:,i].todense())[:,0]
+            Ii = np.array(M[:, i].todense())[:, 0]
             Si = sink / float(n)
             Ti = np.ones(n) / float(n)
             r[i] = ro.dot(Ii*alpha + Si*alpha + Ti*(1-alpha))
@@ -146,14 +123,6 @@ def get_rank(G, alpha=.85, maxerr=1e-06, loops=100):
         else:
             break
     return r/sum(r)
-
-
-def get_page_rank(funcs):
-    df = pd.DataFrame(funcs, columns=['to', 'from'])
-    G = nx.from_pandas_edgelist(df, 'to', 'from')
-    rank = nx.pagerank(G)
-    sorted_rank = [k for k in sorted(rank.items(), reverse=True, key=lambda item:item[1])]
-    return sorted_rank
 
 
 def main():
@@ -172,25 +141,11 @@ def main():
     result = {}
     for i in range(len(list(adjdict.keys()))):
         result[list(adjdict.keys())[i]] = r[i]
-    
-    result = sorted(result.items(), key=lambda x:x[1])[::-1]
+    # sort and print the results
+    result = sorted(result.items(), key=lambda x: x[1])[::-1]
     for item in result:
         addr = '0x{0:0>16x}'.format(item[0])
         print(f'function: {addr} score: {item[1]}')
-    return
-
-    # build adjacency dict
-    xrefs = get_adjacency_dict(data)
-    print(f'found {len(xrefs)+1} references')
-    # get sorted page rank scores
-    pr = get_page_rank(xrefs)
-    # print the results
-    for item in pr:
-        if bits == '64':
-            addr = '0x{0:0>16x}'.format(item[0])
-        else:
-            addr = '0x{0:0>08x}'.format(item[0])
-        print(f'address: {addr}, score: {item[1]}')
     return
 
 
