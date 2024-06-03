@@ -110,6 +110,9 @@ def get_adjacency_matrix(adjdict):
             if v not in adjdict.keys():
                 continue
             idx = adjlist.index(v)
+            if idx == i:
+                # ignore recursive functions
+                continue
             # yes, for now we don't care about duplicates 
             # print(f'adding reference: caller {v} to callee {key}')
             adjmat[i][idx] = 1
