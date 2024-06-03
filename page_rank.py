@@ -31,7 +31,6 @@ def do_analysis(r2p):
     print('analyzing binary...')
     # r2p.cmd('aa;aac')
     r2_wait_result(r2p, 'aaaa')
-    r2_wait_result(r2p, 'aac')
     data = r2_to_dict(r2p, 'iIj')
     bits = data.get('bits', '')
     print('done')
@@ -99,6 +98,7 @@ def main():
     data = get_functions(r2p)
     # build adjacency dict
     xrefs = get_adjacency_dict(data)
+    print(f'found {len(xrefs)+1} references')
     # get sorted page rank scores
     pr = get_page_rank(xrefs)
     # print the results
@@ -108,6 +108,7 @@ def main():
         else:
             addr = '0x{0:0>08x}'.format(item[0])
         print(f'address: {addr}, score: {item[1]}')
+    return
 
 
 if __name__ == '__main__':
