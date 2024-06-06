@@ -125,6 +125,33 @@ def get_rank(G, alpha=.85, maxerr=1e-06, loops=100):
     return r/sum(r)
 
 
+def get_rank_2(G, alpha=0.85, maxerr=1e-6, max_iter=100):
+    # updated version
+    n = G.shape[0]
+    M = csc_matrix(G, dtype=np.float64)
+
+    rsums = np.array(M.sum(1))[:, 0]
+    M.data /= rsums[M.nonzero()[0]]
+
+    sink = (rsums == 0)
+
+    # Initialize PageRank values
+    r = np.ones(n) / n
+
+    for _ in range(max_iter):
+        r_old = r.copy()
+
+        # Compute the new PageRank values
+        sink_contrib = alpha * r_old[sink].sum() / n
+        r = alpha * M.dot(r_old) + sink_contrib + (1 - alpha) / n
+
+        # Check convergence
+        if np.linalg.norm(r - r_old, ord=1) < maxerr:
+            break
+
+    return r / r.sum()
+
+
 def main():
     r2p = r2pipe.open()
     # analyze the binary
@@ -137,7 +164,7 @@ def main():
     adjmat = get_adjacency_matrix(adjdict)
     np.set_printoptions(threshold=np.inf)
     # print(adjmat)
-    r = get_rank(adjmat)
+    r = get_rank_2(adjmat)
     result = {}
     for i in range(len(list(adjdict.keys()))):
         result[list(adjdict.keys())[i]] = r[i]
@@ -151,3 +178,15 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# testing code
+#     G =  np.array([
+#     [0, 1, 1, 0],
+#     [1, 0, 0, 1],
+#     [0, 1, 0, 1],
+#     [1, 0, 1, 0]
+# ])
+#     ranks = get_rank(G)
+#     print(ranks)
+#     ranks = get_rank_2(G)
+#     print(ranks)
